@@ -1,0 +1,132 @@
+:root {
+  --bg-color: #f8fafc; /* Clean light slate background */
+  --bg-color-secondary: #ffffff; /* White cards */
+  --text-primary: #0f172a; /* Slate 900 for high contrast text */
+  --text-secondary: #64748b; /* Slate 500 for secondary text */
+  --accent-color: #0f172a; /* Slate 900 for primary buttons (Modern corporate look) */
+  --accent-hover: #334155; 
+  --brand-color: #2563eb; /* Professional Blue for icons and accents */
+  --danger-color: #ef4444; 
+  --success-color: #10b981; 
+  --warning-color: #f59e0b; 
+  --border-color: #e2e8f0; /* Crisp borders */
+  --glass-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(255, 255, 255, 0.5);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-primary);
+  line-height: 1.5;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+/* Modern clean panels (replacing heavy glass) */
+.glass {
+  background: var(--bg-color-secondary);
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+}
+
+.glass-panel {
+  background: var(--bg-color-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05); /* Very clean corporate shadow */
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Forms */
+input, textarea, select {
+  font-family: 'Inter', sans-serif;
+  color: var(--text-primary);
+  background: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 10px 14px;
+  outline: none;
+  transition: all 0.2s ease;
+  font-size: 0.95rem;
+}
+
+input:focus, textarea:focus, select:focus {
+  border-color: var(--brand-color);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* Buttons */
+button {
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  outline: none;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--accent-color);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  border: 1px solid transparent;
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-hover);
+}
+
+.btn-secondary {
+  background-color: #ffffff;
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.03);
+}
+
+.btn-secondary:hover {
+  background-color: #f8fafc;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}

@@ -1,0 +1,182 @@
+{
+  "projects": [
+    {
+      "id": "p1",
+      "name": "Web Redesign",
+      "description": "Complete overhaul of the main website",
+      "createdAt": "2026-04-06T12:00:00Z"
+    },
+    {
+      "id": "p2",
+      "name": "Website Redesign",
+      "description": "Ongoing website updates",
+      "createdAt": "2026-04-06T12:00:00Z"
+    },
+    {
+      "id": "p3",
+      "name": "Voyah",
+      "description": "Voyah project specifics",
+      "createdAt": "2026-04-06T12:00:00Z"
+    }
+  ],
+  "tasks": [
+    {
+      "title": "3D Creation Holding Plate",
+      "description": "Create 3D for Holding plate as per the std document",
+      "projectId": "p3",
+      "tags": [
+        "3D",
+        "Holding Plate"
+      ],
+      "urgency": "medium",
+      "startDate": "2026-04-06",
+      "deliveryDate": "2026-04-07",
+      "engineerName": "MAO",
+      "assignee": {
+        "id": "u2",
+        "name": "Bob Jones",
+        "role": "Backend Engineer"
+      },
+      "creator": {
+        "id": "u1",
+        "name": "Alice Smith",
+        "role": "Frontend Engineer"
+      },
+      "status": "done",
+      "workingFileNames": [],
+      "referenceFileNames": [
+        "card (2).pdf",
+        "St-M_Tool (1).pdf"
+      ],
+      "referenceFiles": [
+        {
+          "name": "card (2).pdf",
+          "data": "http://localhost:5000/uploads/7ddfe745-8b05-4ced-a82d-894cd00ba452.pdf"
+        },
+        {
+          "name": "St-M_Tool (1).pdf",
+          "data": "http://localhost:5000/uploads/c9b4e62f-c45e-4bc9-8c78-fc218a5c6214.pdf"
+        }
+      ],
+      "images": [
+        "http://localhost:5000/uploads/71850561-6f1b-4e41-9ea4-2b07b358384b.png",
+        "http://localhost:5000/uploads/1e49ddaa-425b-4108-9918-10c8b809f181.png",
+        "http://localhost:5000/uploads/a302b018-4dde-4343-8181-f2c3443141a8.png"
+      ],
+      "id": "ec2e5f88-6b1a-4e78-b837-51410ab37d91",
+      "createdAt": "2026-04-06T17:31:58.999Z"
+    },
+    {
+      "title": "2D Drawing Creation For Bracket",
+      "description": "Create a 2D Drawing from the reference given.",
+      "projectId": "p3",
+      "tags": [
+        "2D",
+        "Bracket"
+      ],
+      "urgency": "medium",
+      "startDate": "2026-04-07",
+      "deliveryDate": "2026-04-08",
+      "engineerName": "MAO",
+      "assignee": {
+        "id": "u2",
+        "name": "Bob Jones",
+        "role": "Backend Engineer"
+      },
+      "creator": {
+        "id": "u1",
+        "name": "Alice Smith",
+        "role": "Frontend Engineer"
+      },
+      "status": "todo",
+      "workingFileNames": [],
+      "referenceFileNames": [
+        "St-M_Tool (1).pdf",
+        "St-M_Tool.pdf"
+      ],
+      "referenceFiles": [
+        {
+          "name": "St-M_Tool (1).pdf",
+          "data": "http://localhost:5000/uploads/87105b7f-0c65-48af-a66f-b4aceefc5a08.pdf"
+        },
+        {
+          "name": "St-M_Tool.pdf",
+          "data": "http://localhost:5000/uploads/86ece562-072e-4a0e-bb4d-be4560e4194d.pdf"
+        }
+      ],
+      "images": [
+        "http://localhost:5000/uploads/22727e77-575e-4649-8490-afdd169f2a79.png",
+        "http://localhost:5000/uploads/2bba08cf-49a2-4116-a353-675536ff3f35.png"
+      ],
+      "id": "8b29889d-7965-43f1-91d8-38ff6f2edd72",
+      "createdAt": "2026-04-06T17:45:40.084Z"
+    },
+    {
+      "title": "Verification Task",
+      "description": "Verification description",
+      "projectId": "p1",
+      "tags": [],
+      "urgency": "critical",
+      "startDate": "",
+      "deliveryDate": "",
+      "engineerName": "",
+      "assignee": null,
+      "creator": {
+        "id": "u1",
+        "name": "Alice Smith",
+        "role": "Frontend Engineer"
+      },
+      "status": "done",
+      "workingFileNames": [],
+      "referenceFileNames": [],
+      "referenceFiles": [],
+      "images": [],
+      "id": "5dc65a76-dc13-43f9-86b6-7c8fef425958",
+      "createdAt": "2026-04-06T17:54:36.171Z"
+    },
+    {
+      "title": "rferfefe",
+      "description": "erferferferfr",
+      "projectId": "p3",
+      "tags": [],
+      "urgency": "high",
+      "startDate": "",
+      "deliveryDate": "2026-05-29",
+      "engineerName": "",
+      "assignee": {
+        "id": "u2",
+        "name": "Bob Jones",
+        "role": "Backend Engineer"
+      },
+      "creator": {
+        "id": "u1",
+        "name": "Alice Smith",
+        "role": "Frontend Engineer"
+      },
+      "status": "todo",
+      "workingFileNames": [],
+      "referenceFileNames": [],
+      "referenceFiles": [],
+      "images": [],
+      "id": "d8739580-f348-4330-8a81-7074ae072e43",
+      "createdAt": "2026-05-27T09:16:23.711Z"
+    }
+  ],
+  "users": [
+    {
+      "id": "u1",
+      "name": "Alice Smith",
+      "role": "Frontend Engineer"
+    },
+    {
+      "id": "u2",
+      "name": "Bob Jones",
+      "role": "Backend Engineer"
+    },
+    {
+      "id": "u3",
+      "name": "Charlie Lee",
+      "role": "Design Lead"
+    }
+  ]
+}
