@@ -1,17 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../store';
-import type { UrgencyLevel } from '../types';
+import type { TaskStatus, UrgencyLevel } from '../types';
 import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
+
+const STATUS_OPTIONS: { id: TaskStatus; label: string }[] = [
+  { id: 'todo', label: 'To Do' },
+  { id: 'in-progress', label: 'In Progress' },
+  { id: 'review', label: 'Review' },
+  { id: 'delivered', label: 'Delivered' },
+  { id: 'done', label: 'Done' },
+];
 
 export const TaskEditor: React.FC<{ taskId: string }> = ({ taskId }) => {
   const { tasks, projects, users, updateTask, currentUserRole } = useAppContext();
   const isReadOnly = currentUserRole !== 'admin';
   const task = tasks.find(t => t.id === taskId);
-  
+
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');
   const [projectId, setProjectId] = useState(task?.projectId || '');
   const [urgency, setUrgency] = useState<UrgencyLevel>(task?.urgency || 'medium');
+  const [status, setStatus] = useState<TaskStatus>(task?.status || 'todo');
   const [startDate, setStartDate] = useState(task?.startDate || '');
   const [deliveryDate, setDeliveryDate] = useState(task?.deliveryDate || '');
   const [assigneeId, setAssigneeId] = useState(task?.assignee?.id || '');
@@ -22,6 +31,7 @@ export const TaskEditor: React.FC<{ taskId: string }> = ({ taskId }) => {
       setDescription(task.description);
       setProjectId(task.projectId);
       setUrgency(task.urgency || 'medium');
+      setStatus(task.status || 'todo');
       setStartDate(task.startDate || '');
       setDeliveryDate(task.deliveryDate || '');
       setAssigneeId(task.assignee?.id || '');
@@ -43,6 +53,7 @@ export const TaskEditor: React.FC<{ taskId: string }> = ({ taskId }) => {
       description,
       projectId,
       urgency,
+      status,
       startDate,
       deliveryDate,
       assignee: users.find(u => u.id === assigneeId) || null
@@ -91,6 +102,12 @@ export const TaskEditor: React.FC<{ taskId: string }> = ({ taskId }) => {
              <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} disabled={isReadOnly} style={{ width: '100%', padding: '12px' }}>
                 <option value="">Unassigned</option>
                 {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+             </select>
+           </div>
+           <div style={{ flex: 1, minWidth: '200px' }}>
+             <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Status</label>
+             <select value={status} onChange={e => setStatus(e.target.value as TaskStatus)} disabled={isReadOnly} style={{ width: '100%', padding: '12px' }}>
+                {STATUS_OPTIONS.map(s => <option key={s.id} value={s.id}>{s.label}</option>)}
              </select>
            </div>
         </div>

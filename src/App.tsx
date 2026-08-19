@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
 import { Layout } from './components/Layout';
 import { TaskCard } from './components/TaskCard';
 import { TaskModal } from './components/TaskModal';
@@ -6,9 +7,14 @@ import { TaskDetailModal } from './components/TaskDetailModal';
 import { TaskEditor } from './components/TaskEditor';
 import { Login } from './components/Login';
 import { Settings } from './components/Settings';
+import { StatsBar } from './components/StatsBar';
+import { KanbanBoard } from './components/KanbanBoard';
+import { CalendarView } from './components/CalendarView';
 import { useAppContext } from './store';
-import { Plus, Search, LogOut } from 'lucide-react';
+import { Plus, Search, LogOut, LayoutGrid, Columns3, CalendarDays } from 'lucide-react';
 import type { Task } from './types';
+
+type ViewMode = 'list' | 'board' | 'calendar';
 
 export function DashboardContent() {
   const { tasks, activeProjectFilter, projects, currentUserRole } = useAppContext();
@@ -22,11 +28,42 @@ export function DashboardContent() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'inprogress' | 'completed'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'urgency'>('date');
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
-  let displayTasks = tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase()) || (t.tags && t.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))));
+  // Keyboard shortcuts: "/" focus search, "n" new task, "Esc" close modals
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      if (e.key === 'Escape') {
+        if (selectedTask) setSelectedTask(null);
+        else if (isTaskModalOpen) setIsTaskModalOpen(false);
+        return;
+      }
+
+      if (isTyping) return;
+
+      if (e.key === '/') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      } else if (e.key.toLowerCase() === 'n' && currentUserRole === 'admin') {
+        e.preventDefault();
+        setIsTaskModalOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedTask, isTaskModalOpen, currentUserRole]);
+
+  // Scoped by project + search only — used for stats, board, and calendar (status filter only applies to List view)
+  let scopedTasks = tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase()) || (t.tags && t.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))));
   if (activeProjectFilter) {
-    displayTasks = displayTasks.filter(t => t.projectId === activeProjectFilter);
+    scopedTasks = scopedTasks.filter(t => t.projectId === activeProjectFilter);
   }
+
+  let displayTasks = scopedTasks;
 
   // Filter by Status
   if (statusFilter === 'inprogress') {
@@ -74,55 +111,86 @@ export function DashboardContent() {
         </div>
       </div>
 
-      <div className="animate-fade-in" style={{ display: 'flex', gap: '16px', marginBottom: '40px', alignItems: 'center', justifyContent: 'flex-end', animationDelay: '0.1s', animationFillMode: 'both', flexWrap: 'wrap' }}>
-        <select 
-          value={statusFilter} 
-          onChange={(e) => setStatusFilter(e.target.value as 'all' | 'inprogress' | 'completed')}
-          style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color-secondary)', outline: 'none', cursor: 'pointer', fontSize: '0.95rem' }}
-        >
-          <option value="all">Status: All</option>
-          <option value="inprogress">In Progress</option>
-          <option value="completed">Completed</option>
-        </select>
-        
-        <select 
-          value={sortBy} 
-          onChange={(e) => setSortBy(e.target.value as 'date' | 'urgency')}
-          style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color-secondary)', outline: 'none', cursor: 'pointer', fontSize: '0.95rem' }}
-        >
-          <option value="date">Sort By: Delivery Date</option>
-          <option value="urgency">Sort By: Urgency</option>
-        </select>
+      <StatsBar tasks={scopedTasks} />
 
-        <div style={{ position: 'relative', width: '280px' }}>
-          <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
-          <input 
-            type="text" 
-            placeholder="Search tasks..." 
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: '100%', padding: '12px 16px 12px 48px', fontSize: '0.95rem', borderRadius: '12px', backgroundColor: 'var(--bg-color-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', transition: 'all 0.3s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-          />
+      <div className="animate-fade-in" style={{ display: 'flex', gap: '16px', marginBottom: '40px', alignItems: 'center', justifyContent: 'space-between', animationDelay: '0.1s', animationFillMode: 'both', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '4px', backgroundColor: 'var(--bg-color-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', padding: '4px' }}>
+          {([
+            { id: 'list', label: 'List', icon: <LayoutGrid size={16} /> },
+            { id: 'board', label: 'Board', icon: <Columns3 size={16} /> },
+            { id: 'calendar', label: 'Calendar', icon: <CalendarDays size={16} /> },
+          ] as { id: ViewMode; label: string; icon: ReactNode }[]).map(v => (
+            <button
+              key={v.id}
+              type="button"
+              onClick={() => setViewMode(v.id)}
+              className={viewMode === v.id ? 'btn-primary' : 'btn-secondary'}
+              style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '0.85rem', border: 'none', boxShadow: 'none' }}
+            >
+              {v.icon} {v.label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {viewMode === 'list' && (
+            <>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'inprogress' | 'completed')}
+                style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color-secondary)', outline: 'none', cursor: 'pointer', fontSize: '0.95rem' }}
+              >
+                <option value="all">Status: All</option>
+                <option value="inprogress">In Progress</option>
+                <option value="completed">Completed</option>
+              </select>
+
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as 'date' | 'urgency')}
+                style={{ padding: '12px 16px', borderRadius: '12px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color-secondary)', outline: 'none', cursor: 'pointer', fontSize: '0.95rem' }}
+              >
+                <option value="date">Sort By: Delivery Date</option>
+                <option value="urgency">Sort By: Urgency</option>
+              </select>
+            </>
+          )}
+
+          <div style={{ position: 'relative', width: '280px' }}>
+            <Search size={18} style={{ position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)' }} />
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search tasks... (press /)"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{ width: '100%', padding: '12px 16px 12px 48px', fontSize: '0.95rem', borderRadius: '12px', backgroundColor: 'var(--bg-color-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', transition: 'all 0.3s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+            />
+          </div>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '28px' }}>
-        {displayTasks.length > 0 ? displayTasks.map((task, index) => (
-          <div key={task.id} className="animate-fade-in" style={{ animationDelay: `${0.1 + (index * 0.05)}s`, animationFillMode: 'both', height: '100%', opacity: task.status === 'done' ? 0.75 : 1 }}>
-             <TaskCard task={task} onClick={() => setSelectedTask(task)} />
-          </div>
-        )) : (
-          <div className="glass-panel animate-fade-in" style={{ gridColumn: '1 / -1', padding: '80px 40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
-            <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Search size={32} color="var(--accent-color)" />
+      {viewMode === 'board' && <KanbanBoard tasks={scopedTasks} onTaskClick={setSelectedTask} />}
+      {viewMode === 'calendar' && <CalendarView tasks={scopedTasks} onTaskClick={setSelectedTask} />}
+      {viewMode === 'list' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '28px' }}>
+          {displayTasks.length > 0 ? displayTasks.map((task, index) => (
+            <div key={task.id} className="animate-fade-in" style={{ animationDelay: `${0.1 + (index * 0.05)}s`, animationFillMode: 'both', height: '100%', opacity: task.status === 'done' ? 0.75 : 1 }}>
+               <TaskCard task={task} onClick={() => setSelectedTask(task)} />
             </div>
-            <div>
-              <h3 style={{ fontSize: '1.2rem', margin: '0 0 8px 0' }}>No tasks found</h3>
-              <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Try adjusting your filters or create a new task.</p>
+          )) : (
+            <div className="glass-panel animate-fade-in" style={{ gridColumn: '1 / -1', padding: '80px 40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
+              <div style={{ width: '64px', height: '64px', borderRadius: '50%', backgroundColor: 'rgba(99, 102, 241, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Search size={32} color="var(--accent-color)" />
+              </div>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', margin: '0 0 8px 0' }}>No tasks found</h3>
+                <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Try adjusting your filters or create a new task.</p>
+              </div>
             </div>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
       <TaskModal isOpen={isTaskModalOpen} onClose={() => setIsTaskModalOpen(false)} />
       <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />
     </Layout>
