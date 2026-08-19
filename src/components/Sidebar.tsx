@@ -1,18 +1,18 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../store';
-import { FolderKanban, Plus } from 'lucide-react';
+import { FolderKanban, Plus, Settings as SettingsIcon } from 'lucide-react';
 import { ProjectModal } from './ProjectModal';
 
 export const Sidebar: React.FC = () => {
-  const { projects, activeProjectFilter, setActiveProjectFilter, currentUserRole } = useAppContext();
+  const { projects, activeProjectFilter, setActiveProjectFilter, currentUserRole, currentAdmin } = useAppContext();
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
 
   return (
     <div className="glass-panel" style={{ width: '250px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '30px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-color)', fontWeight: '700', fontSize: '1.4rem' }}>
+      <a href="#" style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--accent-color)', fontWeight: '700', fontSize: '1.4rem', textDecoration: 'none' }}>
         <FolderKanban size={28} />
         <span>TaskMgr</span>
-      </div>
+      </a>
       
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -44,6 +44,17 @@ export const Sidebar: React.FC = () => {
           ))}
         </ul>
       </div>
+
+      {currentAdmin && (
+        <a
+          href="#settings"
+          style={{ padding: '10px 14px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'var(--text-primary)', fontWeight: 500, backgroundColor: window.location.hash === '#settings' ? 'var(--bg-color)' : 'transparent' }}
+        >
+          <SettingsIcon size={18} color="var(--text-secondary)" />
+          <span>Settings</span>
+        </a>
+      )}
+
       <ProjectModal isOpen={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} />
     </div>
   );

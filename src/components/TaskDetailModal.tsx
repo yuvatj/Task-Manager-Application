@@ -32,7 +32,7 @@ export const TaskDetailModal: React.FC<{ task: Task | null, onClose: () => void 
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '32px' }}>
           <h2 style={{ margin: 0, fontSize: '1.8rem', color: 'var(--text-primary)' }}>{task.title}</h2>
-          <span style={{ fontSize: '0.85rem', padding: '6px 14px', borderRadius: '20px', backgroundColor: '#f1f5f9', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', fontWeight: 600, textTransform: 'uppercase' }}>
+          <span style={{ fontSize: '0.85rem', padding: '6px 14px', borderRadius: '20px', backgroundColor: 'var(--subtle-fill)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', fontWeight: 600, textTransform: 'uppercase' }}>
             {task.status}
           </span>
         </div>
@@ -45,7 +45,7 @@ export const TaskDetailModal: React.FC<{ task: Task | null, onClose: () => void 
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '32px', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '32px', backgroundColor: 'var(--subtle-fill)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', flexWrap: 'wrap' }}>
             <div style={{ flex: 1, minWidth: '140px' }}>
               <h4 style={{ margin: '0 0 8px 0', color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Dates</h4>
               <p style={{ margin: '0 0 4px 0', fontSize: '0.9rem' }}><strong>Start:</strong> {task.startDate ? new Date(task.startDate).toLocaleDateString() : 'N/A'}</p>
@@ -61,7 +61,7 @@ export const TaskDetailModal: React.FC<{ task: Task | null, onClose: () => void 
             </div>
             <div style={{ flex: 1, minWidth: '120px' }}>
               <h4 style={{ margin: '0 0 8px 0', color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Urgency</h4>
-              <p style={{ margin: 0, fontWeight: 600, color: task.urgency === 'critical' ? '#ef4444' : task.urgency === 'high' ? '#f59e0b' : 'var(--text-primary)', textTransform: 'capitalize' }}>
+              <p style={{ margin: 0, fontWeight: 600, color: task.urgency === 'critical' ? 'var(--danger-color)' : task.urgency === 'high' ? 'var(--warning-color)' : 'var(--text-primary)', textTransform: 'capitalize' }}>
                 {task.urgency || 'medium'}
               </p>
             </div>
@@ -69,7 +69,7 @@ export const TaskDetailModal: React.FC<{ task: Task | null, onClose: () => void 
                <h4 style={{ margin: '0 0 8px 0', color: 'var(--text-secondary)', fontSize: '0.85rem', textTransform: 'uppercase' }}>Tags</h4>
                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                  {task.tags && task.tags.map((tag, idx) => (
-                   <span key={idx} style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', backgroundColor: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>
+                   <span key={idx} style={{ fontSize: '0.75rem', padding: '2px 8px', borderRadius: '4px', backgroundColor: 'var(--chip-bg)', color: 'var(--chip-text)', border: '1px solid var(--chip-border)' }}>
                      #{tag}
                    </span>
                  ))}
@@ -82,7 +82,7 @@ export const TaskDetailModal: React.FC<{ task: Task | null, onClose: () => void 
              {((task.referenceFiles && task.referenceFiles.length > 0) || (task.referenceFileNames && task.referenceFileNames.length > 0)) ? (
                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                  {task.referenceFiles && task.referenceFiles.map((file, i) => (
-                   <div key={`file-${i}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                   <div key={`file-${i}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: 'var(--subtle-fill)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                      <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-primary)' }}>{file.name}</span>
                      <button 
                        onClick={() => window.open(file.data, '_blank')}
@@ -94,7 +94,7 @@ export const TaskDetailModal: React.FC<{ task: Task | null, onClose: () => void 
                  ))}
                  {/* Fallback for legacy tasks */}
                  {(!task.referenceFiles || task.referenceFiles.length === 0) && task.referenceFileNames && task.referenceFileNames.map((name, i) => (
-                   <div key={`name-${i}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid var(--border-color)', opacity: 0.7 }}>
+                   <div key={`name-${i}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 16px', backgroundColor: 'var(--subtle-fill)', borderRadius: '8px', border: '1px solid var(--border-color)', opacity: 0.7 }}>
                      <span style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>{name} (Link not available)</span>
                    </div>
                  ))}

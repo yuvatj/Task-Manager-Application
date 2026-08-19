@@ -5,6 +5,7 @@ import { TaskModal } from './components/TaskModal';
 import { TaskDetailModal } from './components/TaskDetailModal';
 import { TaskEditor } from './components/TaskEditor';
 import { Login } from './components/Login';
+import { Settings } from './components/Settings';
 import { useAppContext } from './store';
 import { Plus, Search, LogOut } from 'lucide-react';
 import type { Task } from './types';
@@ -13,6 +14,7 @@ export function DashboardContent() {
   const { tasks, activeProjectFilter, projects, currentUserRole } = useAppContext();
   const handleLogout = () => {
     localStorage.removeItem('taskmgr_role');
+    localStorage.removeItem('taskmgr_admin');
     window.location.href = window.location.origin + window.location.pathname;
   };
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
@@ -144,7 +146,12 @@ function App() {
     return <TaskEditor taskId={taskId} />;
   }
 
-  return <DashboardContent />;
+  return (
+    <>
+      <DashboardContent />
+      <Settings isOpen={hash === '#settings'} onClose={() => { window.location.hash = ''; }} />
+    </>
+  );
 }
 
 export default App;

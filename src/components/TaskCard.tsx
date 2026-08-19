@@ -21,7 +21,7 @@ export const TaskCard: React.FC<{ task: Task, onClick?: () => void }> = ({ task,
             </span>
           </div>
         </div>
-        <span style={{ fontSize: '0.75rem', padding: '4px 12px', borderRadius: '20px', backgroundColor: '#f1f5f9', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        <span style={{ fontSize: '0.75rem', padding: '4px 12px', borderRadius: '20px', backgroundColor: 'var(--subtle-fill)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
           {task.status}
         </span>
       </div>
@@ -32,7 +32,7 @@ export const TaskCard: React.FC<{ task: Task, onClick?: () => void }> = ({ task,
 
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', minHeight: '28px' }}>
         {task.tags && task.tags.map((tag, idx) => (
-          <span key={idx} style={{ fontSize: '0.8rem', padding: '4px 10px', borderRadius: '6px', backgroundColor: '#eff6ff', color: '#1d4ed8', fontWeight: 500, border: '1px solid #bfdbfe' }}>
+          <span key={idx} style={{ fontSize: '0.8rem', padding: '4px 10px', borderRadius: '6px', backgroundColor: 'var(--chip-bg)', color: 'var(--chip-text)', fontWeight: 500, border: '1px solid var(--chip-border)' }}>
             #{tag}
           </span>
         ))}

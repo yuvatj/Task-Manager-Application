@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Runtime data — contains account credentials, regenerated from database.seed.json on first run
+server/database.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

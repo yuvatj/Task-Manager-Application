@@ -2,6 +2,14 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { Task, Project, User } from './types';
 
+export interface AdminAccount {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin';
+  createdAt: string;
+}
+
 interface AppContextType {
   projects: Project[];
   tasks: Task[];
@@ -15,6 +23,14 @@ interface AppContextType {
   setActiveProjectFilter: (id: string | null) => void;
   currentUserRole: 'admin' | 'user' | null;
   setCurrentUserRole: (role: 'admin' | 'user' | null) => void;
+  currentAdmin: AdminAccount | null;
+  signupAdmin: (name: string, email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  loginAdmin: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  changePassword: (currentPassword: string, newPassword: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  updateProfileName: (name: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  deleteAccount: (password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -29,6 +45,13 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [activeProjectFilter, setActiveProjectFilter] = useState<string | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'user' | null>(() => {
     return (localStorage.getItem('taskmgr_role') as 'admin' | 'user') || null;
+  });
+  const [currentAdmin, setCurrentAdmin] = useState<AdminAccount | null>(() => {
+    const stored = localStorage.getItem('taskmgr_admin');
+    return stored ? JSON.parse(stored) : null;
+  });
+  const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
+    return (localStorage.getItem('taskmgr_theme') as 'light' | 'dark') || 'light';
   });
 
   // Initial Fetch
@@ -61,6 +84,116 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     if (currentUserRole) localStorage.setItem('taskmgr_role', currentUserRole);
     else localStorage.removeItem('taskmgr_role');
   }, [currentUserRole]);
+
+  useEffect(() => {
+    if (currentAdmin) localStorage.setItem('taskmgr_admin', JSON.stringify(currentAdmin));
+    else localStorage.removeItem('taskmgr_admin');
+  }, [currentAdmin]);
+
+  useEffect(() => {
+    localStorage.setItem('taskmgr_theme', theme);
+    if (theme === 'dark') document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+  }, [theme]);
+
+  const setTheme = (next: 'light' | 'dark') => setThemeState(next);
+
+  const signupAdmin = async (name: string, email: string, password: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+    try {
+      const response = await fetch(`${API_URL}/auth/signup`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+      const data = await response.json();
+      if (!response.ok) return { ok: false, error: data.error || 'Signup failed' };
+      localStorage.setItem('taskmgr_admin', JSON.stringify(data));
+      localStorage.setItem('taskmgr_role', 'admin');
+      setCurrentAdmin(data);
+      setCurrentUserRole('admin');
+      return { ok: true };
+    } catch (error) {
+      console.error('Error signing up:', error);
+      return { ok: false, error: 'Could not reach the server' };
+    }
+  };
+
+  const loginAdmin = async (email: string, password: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      if (!response.ok) return { ok: false, error: data.error || 'Login failed' };
+      localStorage.setItem('taskmgr_admin', JSON.stringify(data));
+      localStorage.setItem('taskmgr_role', 'admin');
+      setCurrentAdmin(data);
+      setCurrentUserRole('admin');
+      return { ok: true };
+    } catch (error) {
+      console.error('Error logging in:', error);
+      return { ok: false, error: 'Could not reach the server' };
+    }
+  };
+
+  const changePassword = async (currentPassword: string, newPassword: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+    if (!currentAdmin) return { ok: false, error: 'Not signed in' };
+    try {
+      const response = await fetch(`${API_URL}/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: currentAdmin.id, currentPassword, newPassword })
+      });
+      const data = await response.json();
+      if (!response.ok) return { ok: false, error: data.error || 'Could not change password' };
+      return { ok: true };
+    } catch (error) {
+      console.error('Error changing password:', error);
+      return { ok: false, error: 'Could not reach the server' };
+    }
+  };
+
+  const updateProfileName = async (name: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+    if (!currentAdmin) return { ok: false, error: 'Not signed in' };
+    try {
+      const response = await fetch(`${API_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: currentAdmin.id, name })
+      });
+      const data = await response.json();
+      if (!response.ok) return { ok: false, error: data.error || 'Could not update profile' };
+      localStorage.setItem('taskmgr_admin', JSON.stringify(data));
+      setCurrentAdmin(data);
+      return { ok: true };
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      return { ok: false, error: 'Could not reach the server' };
+    }
+  };
+
+  const deleteAccount = async (password: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+    if (!currentAdmin) return { ok: false, error: 'Not signed in' };
+    try {
+      const response = await fetch(`${API_URL}/auth/account`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: currentAdmin.id, password })
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        return { ok: false, error: data.error || 'Could not delete account' };
+      }
+      localStorage.removeItem('taskmgr_admin');
+      localStorage.removeItem('taskmgr_role');
+      return { ok: true };
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      return { ok: false, error: 'Could not reach the server' };
+    }
+  };
 
   const addProject = async (projectData: Omit<Project, 'id' | 'createdAt'>) => {
     try {
@@ -121,7 +254,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   return (
-    <AppContext.Provider value={{ projects, tasks, users, addProject, addTask, updateTaskStatus, updateTask, deleteTask, activeProjectFilter, setActiveProjectFilter, currentUserRole, setCurrentUserRole }}>
+    <AppContext.Provider value={{ projects, tasks, users, addProject, addTask, updateTaskStatus, updateTask, deleteTask, activeProjectFilter, setActiveProjectFilter, currentUserRole, setCurrentUserRole, currentAdmin, signupAdmin, loginAdmin, changePassword, updateProfileName, deleteAccount, theme, setTheme }}>
       {children}
     </AppContext.Provider>
   );

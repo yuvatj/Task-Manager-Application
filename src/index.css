@@ -4,14 +4,38 @@
   --text-primary: #0f172a; /* Slate 900 for high contrast text */
   --text-secondary: #64748b; /* Slate 500 for secondary text */
   --accent-color: #0f172a; /* Slate 900 for primary buttons (Modern corporate look) */
-  --accent-hover: #334155; 
+  --accent-hover: #334155;
   --brand-color: #2563eb; /* Professional Blue for icons and accents */
-  --danger-color: #ef4444; 
-  --success-color: #10b981; 
-  --warning-color: #f59e0b; 
+  --danger-color: #ef4444;
+  --success-color: #10b981;
+  --warning-color: #f59e0b;
   --border-color: #e2e8f0; /* Crisp borders */
   --glass-bg: rgba(255, 255, 255, 0.9);
   --glass-border: rgba(255, 255, 255, 0.5);
+  --chip-bg: #eff6ff;
+  --chip-text: #1d4ed8;
+  --chip-border: #bfdbfe;
+  --subtle-fill: #f8fafc;
+}
+
+:root[data-theme='dark'] {
+  --bg-color: #000000; /* True black background */
+  --bg-color-secondary: #141414; /* Slightly lifted black for cards, so tiles read as separate surfaces */
+  --text-primary: #f5f5f5;
+  --text-secondary: #a3a3a3;
+  --accent-color: #2563eb;
+  --accent-hover: #3b82f6;
+  --brand-color: #60a5fa;
+  --danger-color: #f87171;
+  --success-color: #34d399;
+  --warning-color: #fbbf24;
+  --border-color: #2e2e2e; /* Visible edge against black */
+  --glass-bg: rgba(20, 20, 20, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --chip-bg: rgba(37, 99, 235, 0.18);
+  --chip-text: #93c5fd;
+  --chip-border: rgba(96, 165, 250, 0.4);
+  --subtle-fill: #1a1a1a;
 }
 
 * {
@@ -28,6 +52,7 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 #root {
@@ -60,18 +85,18 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: var(--border-color);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: var(--text-secondary);
 }
 
 /* Forms */
 input, textarea, select {
   font-family: 'Inter', sans-serif;
   color: var(--text-primary);
-  background: #ffffff;
+  background: var(--bg-color-secondary);
   border: 1px solid var(--border-color);
   border-radius: 6px;
   padding: 10px 14px;
@@ -108,7 +133,7 @@ button {
 }
 
 .btn-secondary {
-  background-color: #ffffff;
+  background-color: var(--bg-color-secondary);
   color: var(--text-primary);
   border: 1px solid var(--border-color);
   padding: 10px 20px;
@@ -118,7 +143,66 @@ button {
 }
 
 .btn-secondary:hover {
-  background-color: #f8fafc;
+  background-color: var(--bg-color);
+}
+
+.btn-danger {
+  background-color: transparent;
+  color: var(--danger-color);
+  border: 1px solid var(--danger-color);
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.btn-danger:hover {
+  background-color: var(--danger-color);
+  color: white;
+}
+
+/* Toggle switch */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 42px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-track {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: var(--border-color);
+  border-radius: 999px;
+  transition: background-color 0.2s ease;
+}
+
+.switch-track::before {
+  content: '';
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  top: 3px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.switch input:checked + .switch-track {
+  background-color: var(--brand-color);
+}
+
+.switch input:checked + .switch-track::before {
+  transform: translateX(18px);
 }
 
 /* Animations */
