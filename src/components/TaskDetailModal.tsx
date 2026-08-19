@@ -1,10 +1,36 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppContext } from '../store';
+import { v4 as uuidv4 } from 'uuid';
 import type { Task } from '../types';
-import { X, CheckCircle, ExternalLink } from 'lucide-react';
+import { X, CheckCircle, ExternalLink, Plus, Trash2, MessageSquare, ListChecks, History } from 'lucide-react';
+
+const inputStyle: React.CSSProperties = {
+  flex: 1,
+  padding: '10px 14px',
+  borderRadius: '8px',
+  border: '1px solid var(--border-color)',
+  backgroundColor: 'var(--bg-color-secondary)',
+  color: 'var(--text-primary)',
+  fontSize: '0.9rem',
+  outline: 'none'
+};
+
+const timeAgo = (iso: string) => {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
 
 export const TaskDetailModal: React.FC<{ task: Task | null, onClose: () => void }> = ({ task, onClose }) => {
-  const { updateTaskStatus } = useAppContext();
+  const { updateTaskStatus, updateTask, currentUserRole, currentActorName } = useAppContext();
+  const isReadOnly = currentUserRole !== 'admin';
+  const [newChecklistItem, setNewChecklistItem] = useState('');
+  const [newComment, setNewComment] = useState('');
 
   // Prevent background scrolling when modal is open
   useEffect(() => {
@@ -16,7 +42,38 @@ export const TaskDetailModal: React.FC<{ task: Task | null, onClose: () => void 
     return () => { document.body.style.overflow = 'auto'; };
   }, [task]);
 
+  useEffect(() => {
+    setNewChecklistItem('');
+    setNewComment('');
+  }, [task?.id]);
+
   if (!task) return null;
+
+  const checklist = task.checklist || [];
+  const comments = task.comments || [];
+  const activity = task.activity || [];
+
+  const toggleChecklistItem = (itemId: string) => {
+    updateTask(task.id, { checklist: checklist.map(c => (c.id === itemId ? { ...c, done: !c.done } : c)) });
+  };
+
+  const addChecklistItem = () => {
+    if (!newChecklistItem.trim()) return;
+    updateTask(task.id, { checklist: [...checklist, { id: uuidv4(), text: newChecklistItem.trim(), done: false }] });
+    setNewChecklistItem('');
+  };
+
+  const removeChecklistItem = (itemId: string) => {
+    updateTask(task.id, { checklist: checklist.filter(c => c.id !== itemId) });
+  };
+
+  const addComment = () => {
+    if (!newComment.trim()) return;
+    const commentEntry = { id: uuidv4(), authorName: currentActorName, text: newComment.trim(), createdAt: new Date().toISOString() };
+    const activityEntry = { id: uuidv4(), message: 'Added a comment', actor: currentActorName, createdAt: new Date().toISOString() };
+    updateTask(task.id, { comments: [...comments, commentEntry], activity: [...activity, activityEntry] });
+    setNewComment('');
+  };
 
   return (
     <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backgroundColor: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)' }}>
@@ -121,9 +178,73 @@ export const TaskDetailModal: React.FC<{ task: Task | null, onClose: () => void 
             </div>
           )}
 
-          <div style={{ marginTop: '32px', paddingTop: '24px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
-             <button 
-               className="btn-primary" 
+          <div>
+            <h4 style={{ margin: '0 0 12px 0', color: 'var(--text-secondary)', fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <ListChecks size={16} /> Checklist {checklist.length > 0 && `(${checklist.filter(c => c.done).length}/${checklist.length})`}
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '10px' }}>
+              {checklist.map(item => (
+                <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px', borderRadius: '8px', backgroundColor: 'var(--subtle-fill)' }}>
+                  <input type="checkbox" checked={item.done} onChange={() => toggleChecklistItem(item.id)} />
+                  <span style={{ flex: 1, fontSize: '0.9rem', textDecoration: item.done ? 'line-through' : 'none', color: item.done ? 'var(--text-secondary)' : 'var(--text-primary)' }}>{item.text}</span>
+                  {!isReadOnly && (
+                    <button type="button" onClick={() => removeChecklistItem(item.id)} style={{ background: 'transparent', color: 'var(--text-secondary)', padding: '2px' }} title="Remove">
+                      <Trash2 size={15} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {checklist.length === 0 && <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No checklist items yet.</p>}
+            </div>
+            {!isReadOnly && (
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input type="text" value={newChecklistItem} onChange={e => setNewChecklistItem(e.target.value)} onKeyDown={e => e.key === 'Enter' && addChecklistItem()} placeholder="Add a checklist item..." style={inputStyle} />
+                <button type="button" className="btn-secondary" onClick={addChecklistItem} style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}><Plus size={16} /> Add</button>
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h4 style={{ margin: '0 0 12px 0', color: 'var(--text-secondary)', fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <MessageSquare size={16} /> Comments {comments.length > 0 && `(${comments.length})`}
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '10px' }}>
+              {comments.map(c => (
+                <div key={c.id} style={{ padding: '10px 14px', borderRadius: '8px', backgroundColor: 'var(--subtle-fill)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                    <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-primary)' }}>{c.authorName}</span>
+                    <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{timeAgo(c.createdAt)}</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-primary)', whiteSpace: 'pre-wrap' }}>{c.text}</p>
+                </div>
+              ))}
+              {comments.length === 0 && <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No comments yet.</p>}
+            </div>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input type="text" value={newComment} onChange={e => setNewComment(e.target.value)} onKeyDown={e => e.key === 'Enter' && addComment()} placeholder="Write a comment..." style={inputStyle} />
+              <button type="button" className="btn-secondary" onClick={addComment} style={{ flexShrink: 0 }}>Post</button>
+            </div>
+          </div>
+
+          {activity.length > 0 && (
+            <div>
+              <h4 style={{ margin: '0 0 12px 0', color: 'var(--text-secondary)', fontSize: '0.95rem', textTransform: 'uppercase', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <History size={16} /> Activity
+              </h4>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {[...activity].reverse().map(entry => (
+                  <div key={entry.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                    <span><strong style={{ color: 'var(--text-primary)' }}>{entry.actor}</strong> {entry.message}</span>
+                    <span>{timeAgo(entry.createdAt)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ marginTop: '8px', paddingTop: '24px', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
+             <button
+               className="btn-primary"
                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', backgroundColor: 'var(--success-color)' }}
                onClick={() => {
                  updateTaskStatus(task.id, 'done');

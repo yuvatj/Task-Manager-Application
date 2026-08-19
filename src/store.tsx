@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { v4 as uuidv4 } from 'uuid';
 import type { Task, Project, User } from './types';
 
 export interface AdminAccount {
@@ -32,6 +33,9 @@ interface AppContextType {
   deleteAccount: (password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   theme: 'light' | 'dark';
   setTheme: (theme: 'light' | 'dark') => void;
+  currentActorName: string;
+  toast: string | null;
+  showToast: (message: string) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -54,6 +58,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
     return (localStorage.getItem('taskmgr_theme') as 'light' | 'dark') || 'light';
   });
+  const [toast, setToast] = useState<string | null>(null);
+
+  const currentActorName = currentAdmin?.name || 'Guest';
+
+  const showToast = (message: string) => setToast(message);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   // Initial Fetch
   useEffect(() => {
@@ -242,7 +257,16 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const updateTaskStatus = async (id: string, status: Task['status']) => {
-    updateTask(id, { status });
+    const task = tasks.find(t => t.id === id);
+    const updates: Partial<Task> = { status };
+
+    if (task && status === 'done' && task.status !== 'done') {
+      const entry = { id: uuidv4(), message: 'Marked as Done', actor: currentActorName, createdAt: new Date().toISOString() };
+      updates.activity = [...(task.activity || []), entry];
+      showToast(`"${task.title}" marked as done`);
+    }
+
+    updateTask(id, updates);
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
@@ -272,7 +296,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   return (
-    <AppContext.Provider value={{ projects, tasks, users, addProject, updateProject, addTask, updateTaskStatus, updateTask, deleteTask, activeProjectFilter, setActiveProjectFilter, currentUserRole, setCurrentUserRole, currentAdmin, signupAdmin, loginAdmin, changePassword, updateProfileName, deleteAccount, theme, setTheme }}>
+    <AppContext.Provider value={{ projects, tasks, users, addProject, updateProject, addTask, updateTaskStatus, updateTask, deleteTask, activeProjectFilter, setActiveProjectFilter, currentUserRole, setCurrentUserRole, currentAdmin, signupAdmin, loginAdmin, changePassword, updateProfileName, deleteAccount, theme, setTheme, currentActorName, toast, showToast }}>
       {children}
     </AppContext.Provider>
   );

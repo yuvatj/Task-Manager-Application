@@ -13,8 +13,6 @@ import { CalendarView } from './components/CalendarView';
 import { ProjectInsights } from './components/ProjectInsights';
 import { useAppContext } from './store';
 import { Plus, Search, LogOut, LayoutGrid, Columns3, CalendarDays, BarChart3 } from 'lucide-react';
-import type { Task } from './types';
-
 type ViewMode = 'list' | 'board' | 'calendar';
 
 export function DashboardContent() {
@@ -25,7 +23,10 @@ export function DashboardContent() {
     window.location.href = window.location.origin + window.location.pathname;
   };
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  // Store just the id and look the task up live — holding the task object itself
+  // would go stale the moment it's edited elsewhere (checklist, comments, status).
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const selectedTask = selectedTaskId ? tasks.find(t => t.id === selectedTaskId) || null : null;
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'inprogress' | 'completed'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'urgency'>('date');
@@ -40,7 +41,7 @@ export function DashboardContent() {
       const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
       if (e.key === 'Escape') {
-        if (selectedTask) setSelectedTask(null);
+        if (selectedTask) setSelectedTaskId(null);
         else if (isTaskModalOpen) setIsTaskModalOpen(false);
         else if (isInsightsOpen) setIsInsightsOpen(false);
         return;
@@ -179,13 +180,13 @@ export function DashboardContent() {
         </div>
       </div>
 
-      {viewMode === 'board' && <KanbanBoard tasks={scopedTasks} onTaskClick={setSelectedTask} />}
-      {viewMode === 'calendar' && <CalendarView tasks={scopedTasks} onTaskClick={setSelectedTask} />}
+      {viewMode === 'board' && <KanbanBoard tasks={scopedTasks} onTaskClick={(task) => setSelectedTaskId(task.id)} />}
+      {viewMode === 'calendar' && <CalendarView tasks={scopedTasks} onTaskClick={(task) => setSelectedTaskId(task.id)} />}
       {viewMode === 'list' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))', gap: '28px' }}>
           {displayTasks.length > 0 ? displayTasks.map((task, index) => (
             <div key={task.id} className="animate-fade-in" style={{ animationDelay: `${0.1 + (index * 0.05)}s`, animationFillMode: 'both', height: '100%', opacity: task.status === 'done' ? 0.75 : 1 }}>
-               <TaskCard task={task} onClick={() => setSelectedTask(task)} />
+               <TaskCard task={task} onClick={() => setSelectedTaskId(task.id)} />
             </div>
           )) : (
             <div className="glass-panel animate-fade-in" style={{ gridColumn: '1 / -1', padding: '80px 40px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
@@ -201,7 +202,7 @@ export function DashboardContent() {
         </div>
       )}
       <TaskModal isOpen={isTaskModalOpen} onClose={() => setIsTaskModalOpen(false)} />
-      <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />
+      <TaskDetailModal task={selectedTask} onClose={() => setSelectedTaskId(null)} />
       <ProjectInsights
         project={isInsightsOpen ? activeProject : null}
         tasks={activeProject ? tasks.filter(t => t.projectId === activeProject.id) : []}
@@ -212,7 +213,7 @@ export function DashboardContent() {
 }
 
 function App() {
-  const { currentUserRole } = useAppContext();
+  const { currentUserRole, toast } = useAppContext();
   const [hash, setHash] = useState(window.location.hash);
 
   useEffect(() => {
@@ -232,6 +233,14 @@ function App() {
     <>
       <DashboardContent />
       <Settings isOpen={hash === '#settings'} onClose={() => { window.location.hash = ''; }} />
+      {toast && (
+        <div
+          className="glass-panel animate-fade-in"
+          style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 2000, padding: '14px 20px', fontSize: '0.9rem', color: 'var(--text-primary)', maxWidth: '320px' }}
+        >
+          {toast}
+        </div>
+      )}
     </>
   );
 }
