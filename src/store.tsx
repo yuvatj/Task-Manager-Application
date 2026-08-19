@@ -15,6 +15,7 @@ interface AppContextType {
   tasks: Task[];
   users: User[]; // Users for assignment
   addProject: (project: Omit<Project, 'id' | 'createdAt'>) => void;
+  updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
   updateTaskStatus: (id: string, status: Task['status']) => void;
   updateTask: (id: string, updates: Partial<Task>) => void;
@@ -209,6 +210,22 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     }
   };
 
+  const updateProject = async (id: string, updates: Partial<Project>) => {
+    // Merge the fields we just sent, not the server's full response — two rapid
+    // edits can resolve out of order, and replacing the whole object with
+    // whichever response lands last would silently drop the other edit.
+    setProjects(prev => prev.map(p => (p.id === id ? { ...p, ...updates } : p)));
+    try {
+      await fetch(`${API_URL}/projects/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+    } catch (error) {
+      console.error('Error updating project:', error);
+    }
+  };
+
   const addTask = async (taskData: Omit<Task, 'id' | 'createdAt'>) => {
     try {
       const response = await fetch(`${API_URL}/tasks`, {
@@ -229,14 +246,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
+    // Merge the fields we just sent, not the server's full response — see the
+    // same note in updateProject above.
+    setTasks(prev => prev.map(t => (t.id === id ? { ...t, ...updates } : t)));
     try {
-      const response = await fetch(`${API_URL}/tasks/${id}`, {
+      await fetch(`${API_URL}/tasks/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
       });
-      const updatedTask = await response.json();
-      setTasks(prev => prev.map(t => (t.id === id ? updatedTask : t)));
     } catch (error) {
       console.error('Error updating task:', error);
     }
@@ -254,7 +272,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   return (
-    <AppContext.Provider value={{ projects, tasks, users, addProject, addTask, updateTaskStatus, updateTask, deleteTask, activeProjectFilter, setActiveProjectFilter, currentUserRole, setCurrentUserRole, currentAdmin, signupAdmin, loginAdmin, changePassword, updateProfileName, deleteAccount, theme, setTheme }}>
+    <AppContext.Provider value={{ projects, tasks, users, addProject, updateProject, addTask, updateTaskStatus, updateTask, deleteTask, activeProjectFilter, setActiveProjectFilter, currentUserRole, setCurrentUserRole, currentAdmin, signupAdmin, loginAdmin, changePassword, updateProfileName, deleteAccount, theme, setTheme }}>
       {children}
     </AppContext.Provider>
   );

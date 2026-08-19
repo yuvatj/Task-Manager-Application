@@ -110,6 +110,17 @@ app.post('/api/projects', (req, res) => {
   res.status(201).json(newProject);
 });
 
+app.put('/api/projects/:id', (req, res) => {
+  const db = readDB();
+  const index = db.projects.findIndex(p => p.id === req.params.id);
+  if (index === -1) {
+    return res.status(404).send('Project not found');
+  }
+  db.projects[index] = { ...db.projects[index], ...req.body };
+  writeDB(db);
+  res.json(db.projects[index]);
+});
+
 app.get('/api/users', (req, res) => {
   const db = readDB();
   res.json(db.users);

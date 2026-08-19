@@ -10,8 +10,9 @@ import { Settings } from './components/Settings';
 import { StatsBar } from './components/StatsBar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { CalendarView } from './components/CalendarView';
+import { ProjectInsights } from './components/ProjectInsights';
 import { useAppContext } from './store';
-import { Plus, Search, LogOut, LayoutGrid, Columns3, CalendarDays } from 'lucide-react';
+import { Plus, Search, LogOut, LayoutGrid, Columns3, CalendarDays, BarChart3 } from 'lucide-react';
 import type { Task } from './types';
 
 type ViewMode = 'list' | 'board' | 'calendar';
@@ -29,6 +30,7 @@ export function DashboardContent() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'inprogress' | 'completed'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'urgency'>('date');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [isInsightsOpen, setIsInsightsOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Keyboard shortcuts: "/" focus search, "n" new task, "Esc" close modals
@@ -40,6 +42,7 @@ export function DashboardContent() {
       if (e.key === 'Escape') {
         if (selectedTask) setSelectedTask(null);
         else if (isTaskModalOpen) setIsTaskModalOpen(false);
+        else if (isInsightsOpen) setIsInsightsOpen(false);
         return;
       }
 
@@ -55,7 +58,7 @@ export function DashboardContent() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedTask, isTaskModalOpen, currentUserRole]);
+  }, [selectedTask, isTaskModalOpen, isInsightsOpen, currentUserRole]);
 
   // Scoped by project + search only — used for stats, board, and calendar (status filter only applies to List view)
   let scopedTasks = tasks.filter(t => t.title.toLowerCase().includes(search.toLowerCase()) || (t.tags && t.tags.some(tag => tag.toLowerCase().includes(search.toLowerCase()))));
@@ -88,7 +91,8 @@ export function DashboardContent() {
     });
   }
 
-  const activeProjectName = activeProjectFilter ? projects.find(p => p.id === activeProjectFilter)?.name : 'Dashboard';
+  const activeProject = activeProjectFilter ? projects.find(p => p.id === activeProjectFilter) || null : null;
+  const activeProjectName = activeProject ? activeProject.name : 'Dashboard';
 
   return (
     <Layout>
@@ -100,6 +104,11 @@ export function DashboardContent() {
           <p style={{ color: 'var(--text-secondary)', margin: '8px 0 0 0', fontSize: '1.1rem' }}>Manage your tasks and projects efficiently.</p>
         </div>
         <div style={{ display: 'flex', gap: '16px' }}>
+          {activeProject && (
+            <button onClick={() => setIsInsightsOpen(true)} className="btn-secondary animate-fade-in" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', fontSize: '1rem' }}>
+              <BarChart3 size={20} /> Insights
+            </button>
+          )}
           {currentUserRole === 'admin' && (
             <button onClick={() => setIsTaskModalOpen(true)} className="btn-primary animate-fade-in" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', fontSize: '1rem' }}>
               <Plus size={20} /> Create Task
@@ -193,6 +202,11 @@ export function DashboardContent() {
       )}
       <TaskModal isOpen={isTaskModalOpen} onClose={() => setIsTaskModalOpen(false)} />
       <TaskDetailModal task={selectedTask} onClose={() => setSelectedTask(null)} />
+      <ProjectInsights
+        project={isInsightsOpen ? activeProject : null}
+        tasks={activeProject ? tasks.filter(t => t.projectId === activeProject.id) : []}
+        onClose={() => setIsInsightsOpen(false)}
+      />
     </Layout>
   )
 }
