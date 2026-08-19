@@ -32,7 +32,19 @@ export function DashboardContent() {
   const [sortBy, setSortBy] = useState<'date' | 'urgency'>('date');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [isInsightsOpen, setIsInsightsOpen] = useState(false);
+  const [reminderDismissed, setReminderDismissed] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const dueSoonTasks = (() => {
+    if (localStorage.getItem('taskmgr_notif_due') === 'false') return [];
+    const now = Date.now();
+    const in48h = now + 48 * 60 * 60 * 1000;
+    return tasks.filter(t => {
+      if (t.status === 'done' || !t.deliveryDate) return false;
+      const due = new Date(t.deliveryDate).getTime();
+      return due >= now && due <= in48h;
+    });
+  })();
 
   // Keyboard shortcuts: "/" focus search, "n" new task, "Esc" close modals
   useEffect(() => {
@@ -97,6 +109,16 @@ export function DashboardContent() {
 
   return (
     <Layout>
+      {dueSoonTasks.length > 0 && !reminderDismissed && (
+        <div className="glass-panel animate-fade-in" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 20px', marginBottom: '24px', borderLeft: '4px solid var(--warning-color)' }}>
+          <span style={{ fontSize: '0.9rem', color: 'var(--text-primary)' }}>
+            <strong>{dueSoonTasks.length}</strong> task{dueSoonTasks.length > 1 ? 's' : ''} due within 48 hours: {dueSoonTasks.map(t => t.title).join(', ')}
+          </span>
+          <button type="button" onClick={() => setReminderDismissed(true)} className="btn-secondary" style={{ padding: '6px 14px', fontSize: '0.8rem', flexShrink: 0, marginLeft: '16px' }}>
+            Dismiss
+          </button>
+        </div>
+      )}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
         <div className="animate-fade-in">
           <h1 style={{ fontSize: '2.5rem', fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>

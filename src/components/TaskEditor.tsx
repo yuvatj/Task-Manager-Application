@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../store';
 import type { TaskStatus, UrgencyLevel } from '../types';
-import { ArrowLeft, Save, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, Link2 } from 'lucide-react';
 
 const STATUS_OPTIONS: { id: TaskStatus; label: string }[] = [
   { id: 'todo', label: 'To Do' },
@@ -25,6 +25,7 @@ export const TaskEditor: React.FC<{ taskId: string }> = ({ taskId }) => {
   const [startDate, setStartDate] = useState(task?.startDate || '');
   const [deliveryDate, setDeliveryDate] = useState(task?.deliveryDate || '');
   const [assigneeId, setAssigneeId] = useState(task?.assignee?.id || '');
+  const [blockedBy, setBlockedBy] = useState<string[]>(task?.blockedBy || []);
 
   useEffect(() => {
     if (task) {
@@ -36,6 +37,7 @@ export const TaskEditor: React.FC<{ taskId: string }> = ({ taskId }) => {
       setStartDate(task.startDate || '');
       setDeliveryDate(task.deliveryDate || '');
       setAssigneeId(task.assignee?.id || '');
+      setBlockedBy(task.blockedBy || []);
     }
   }, [task]);
 
@@ -57,7 +59,8 @@ export const TaskEditor: React.FC<{ taskId: string }> = ({ taskId }) => {
       status,
       startDate,
       deliveryDate,
-      assignee: assignableUsers.find(u => u.id === assigneeId) || null
+      assignee: assignableUsers.find(u => u.id === assigneeId) || null,
+      blockedBy
     });
     alert('Task saved successfully!');
   };
@@ -127,6 +130,29 @@ export const TaskEditor: React.FC<{ taskId: string }> = ({ taskId }) => {
         <div>
           <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Description</label>
           <textarea value={description} onChange={e => setDescription(e.target.value)} disabled={isReadOnly} rows={8} style={{ width: '100%', padding: '12px', fontSize: '1rem', resize: 'vertical' }} />
+        </div>
+
+        <div>
+          <label style={{ display: 'flex', marginBottom: '8px', fontWeight: 500, alignItems: 'center', gap: '6px' }}>
+            <Link2 size={16} /> Blocked By
+          </label>
+          <p style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>This task can't start until the checked tasks are done.</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '160px', overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: '10px', padding: '10px' }}>
+            {tasks.filter(t => t.projectId === projectId && t.id !== taskId).map(t => (
+              <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '0.9rem', cursor: isReadOnly ? 'default' : 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={blockedBy.includes(t.id)}
+                  disabled={isReadOnly}
+                  onChange={() => setBlockedBy(prev => prev.includes(t.id) ? prev.filter(id => id !== t.id) : [...prev, t.id])}
+                />
+                <span style={{ color: t.status === 'done' ? 'var(--text-secondary)' : 'var(--text-primary)', textDecoration: t.status === 'done' ? 'line-through' : 'none' }}>{t.title}</span>
+              </label>
+            ))}
+            {tasks.filter(t => t.projectId === projectId && t.id !== taskId).length === 0 && (
+              <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No other tasks in this project.</p>
+            )}
+          </div>
         </div>
 
         {!isReadOnly && (

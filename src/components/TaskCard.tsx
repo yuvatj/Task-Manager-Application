@@ -1,8 +1,12 @@
 import React from 'react';
+import { useAppContext } from '../store';
 import type { Task } from '../types';
-import { Paperclip, Image as ImageIcon, UserCircle } from 'lucide-react';
+import { Paperclip, Image as ImageIcon, UserCircle, Lock } from 'lucide-react';
 
 export const TaskCard: React.FC<{ task: Task, onClick?: () => void }> = ({ task, onClick }) => {
+  const { tasks } = useAppContext();
+  const isBlocked = !!task.blockedBy?.some(id => tasks.find(t => t.id === id)?.status !== 'done');
+
   return (
     <div className="glass-panel" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px', transition: 'transform 0.2s', cursor: 'pointer', height: '100%', minHeight: '260px' }} 
          onClick={onClick}
@@ -19,6 +23,11 @@ export const TaskCard: React.FC<{ task: Task, onClick?: () => void }> = ({ task,
             <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
               Due: {task.deliveryDate ? new Date(task.deliveryDate).toLocaleDateString() : 'N/A'}
             </span>
+            {isBlocked && (
+              <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: 'var(--danger-color)', fontWeight: 600 }} title="Waiting on other tasks to finish">
+                <Lock size={12} /> Blocked
+              </span>
+            )}
           </div>
         </div>
         <span style={{ fontSize: '0.75rem', padding: '4px 12px', borderRadius: '20px', backgroundColor: 'var(--subtle-fill)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
