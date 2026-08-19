@@ -4,7 +4,8 @@ import { X } from 'lucide-react';
 import type { Attachment, UrgencyLevel } from '../types';
 
 export const TaskModal: React.FC<{ isOpen: boolean, onClose: () => void }> = ({ isOpen, onClose }) => {
-  const { projects, users, addTask } = useAppContext();
+  const { projects, users, members, addTask } = useAppContext();
+  const assignableUsers = [...users, ...members.map(m => ({ id: m.id, name: m.name, role: 'Member' }))];
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [projectId, setProjectId] = useState('');
@@ -24,7 +25,7 @@ export const TaskModal: React.FC<{ isOpen: boolean, onClose: () => void }> = ({ 
     if (!title.trim()) { alert('Task Title is required'); return; }
     if (!projectId) { alert('Please select a Project'); return; }
 
-    const assignee = users.find(u => u.id === assigneeId) || null;
+    const assignee = assignableUsers.find(u => u.id === assigneeId) || null;
     const taskTags = tags.split(',').map(t => t.trim()).filter(Boolean);
 
     addTask({
@@ -90,7 +91,7 @@ export const TaskModal: React.FC<{ isOpen: boolean, onClose: () => void }> = ({ 
               <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Assignee</label>
               <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', outline: 'none' }}>
                 <option value="">Unassigned</option>
-                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                {assignableUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
               </select>
             </div>
             <div style={{ flex: 1 }}>

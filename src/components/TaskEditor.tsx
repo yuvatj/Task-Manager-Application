@@ -12,9 +12,10 @@ const STATUS_OPTIONS: { id: TaskStatus; label: string }[] = [
 ];
 
 export const TaskEditor: React.FC<{ taskId: string }> = ({ taskId }) => {
-  const { tasks, projects, users, updateTask, currentUserRole } = useAppContext();
+  const { tasks, projects, users, members, updateTask, currentUserRole } = useAppContext();
   const isReadOnly = currentUserRole !== 'admin';
   const task = tasks.find(t => t.id === taskId);
+  const assignableUsers = [...users, ...members.map(m => ({ id: m.id, name: m.name, role: 'Member' }))];
 
   const [title, setTitle] = useState(task?.title || '');
   const [description, setDescription] = useState(task?.description || '');
@@ -56,7 +57,7 @@ export const TaskEditor: React.FC<{ taskId: string }> = ({ taskId }) => {
       status,
       startDate,
       deliveryDate,
-      assignee: users.find(u => u.id === assigneeId) || null
+      assignee: assignableUsers.find(u => u.id === assigneeId) || null
     });
     alert('Task saved successfully!');
   };
@@ -101,7 +102,7 @@ export const TaskEditor: React.FC<{ taskId: string }> = ({ taskId }) => {
              <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Assignee</label>
              <select value={assigneeId} onChange={e => setAssigneeId(e.target.value)} disabled={isReadOnly} style={{ width: '100%', padding: '12px' }}>
                 <option value="">Unassigned</option>
-                {users.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
+                {assignableUsers.map(u => <option key={u.id} value={u.id}>{u.name}</option>)}
              </select>
            </div>
            <div style={{ flex: 1, minWidth: '200px' }}>

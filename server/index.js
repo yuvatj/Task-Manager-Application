@@ -49,10 +49,11 @@ const readDB = () => {
     const data = fs.readFileSync(DB_PATH, 'utf8');
     const db = JSON.parse(data);
     if (!db.admins) db.admins = [];
+    if (!db.members) db.members = [];
     return db;
   } catch (error) {
     console.error('Error reading database:', error);
-    return { tasks: [], projects: [], users: [], admins: [] };
+    return { tasks: [], projects: [], users: [], admins: [], members: [] };
   }
 };
 
@@ -166,18 +167,66 @@ app.post('/api/auth/login', async (req, res) => {
 
   const db = readDB();
   const normalizedEmail = email.trim().toLowerCase();
-  const admin = db.admins.find(a => a.email === normalizedEmail);
-  if (!admin) {
+  const account = db.admins.find(a => a.email === normalizedEmail) || db.members.find(m => m.email === normalizedEmail);
+  if (!account) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
-  const match = await bcrypt.compare(password, admin.passwordHash);
+  const match = await bcrypt.compare(password, account.passwordHash);
   if (!match) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
 
-  const { passwordHash: _omit, ...safeAdmin } = admin;
-  res.json(safeAdmin);
+  const { passwordHash: _omit, ...safeAccount } = account;
+  res.json(safeAccount);
+});
+
+// Member accounts (created by an admin — no self-serve signup)
+app.get('/api/auth/members', (req, res) => {
+  const db = readDB();
+  res.json(db.members.map(({ passwordHash, ...safe }) => safe));
+});
+
+app.post('/api/auth/create-member', async (req, res) => {
+  const { name, email, password } = req.body;
+  if (!name || !email || !password) {
+    return res.status(400).json({ error: 'Name, email and password are required' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ error: 'Password must be at least 8 characters' });
+  }
+
+  const db = readDB();
+  const normalizedEmail = email.trim().toLowerCase();
+  if (db.admins.some(a => a.email === normalizedEmail) || db.members.some(m => m.email === normalizedEmail)) {
+    return res.status(409).json({ error: 'An account with this email already exists' });
+  }
+
+  const passwordHash = await bcrypt.hash(password, 10);
+  const newMember = {
+    id: uuidv4(),
+    name,
+    email: normalizedEmail,
+    passwordHash,
+    role: 'member',
+    createdAt: new Date().toISOString()
+  };
+  db.members.push(newMember);
+  writeDB(db);
+
+  const { passwordHash: _omit, ...safeMember } = newMember;
+  res.status(201).json(safeMember);
+});
+
+app.delete('/api/auth/members/:id', (req, res) => {
+  const db = readDB();
+  const before = db.members.length;
+  db.members = db.members.filter(m => m.id !== req.params.id);
+  if (db.members.length === before) {
+    return res.status(404).json({ error: 'Member not found' });
+  }
+  writeDB(db);
+  res.status(204).send();
 });
 
 app.post('/api/auth/change-password', async (req, res) => {

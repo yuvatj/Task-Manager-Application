@@ -4,7 +4,7 @@ import { FolderKanban, Plus, Settings as SettingsIcon } from 'lucide-react';
 import { ProjectModal } from './ProjectModal';
 
 export const Sidebar: React.FC = () => {
-  const { projects, activeProjectFilter, setActiveProjectFilter, currentUserRole, currentAdmin } = useAppContext();
+  const { projects, activeProjectFilter, setActiveProjectFilter, currentUserRole, currentAccount } = useAppContext();
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
 
   return (
@@ -45,7 +45,7 @@ export const Sidebar: React.FC = () => {
         </ul>
       </div>
 
-      {currentAdmin && (
+      {currentAccount && (
         <a
           href="#settings"
           style={{ padding: '10px 14px', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'var(--text-primary)', fontWeight: 500, backgroundColor: window.location.hash === '#settings' ? 'var(--bg-color)' : 'transparent' }}

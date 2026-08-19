@@ -3,11 +3,11 @@ import type { ReactNode } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import type { Task, Project, User } from './types';
 
-export interface AdminAccount {
+export interface UserAccount {
   id: string;
   name: string;
   email: string;
-  role: 'admin';
+  role: 'admin' | 'member';
   createdAt: string;
 }
 
@@ -15,6 +15,9 @@ interface AppContextType {
   projects: Project[];
   tasks: Task[];
   users: User[]; // Users for assignment
+  members: UserAccount[];
+  createMember: (name: string, email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
+  deleteMember: (id: string) => Promise<void>;
   addProject: (project: Omit<Project, 'id' | 'createdAt'>) => void;
   updateProject: (id: string, updates: Partial<Project>) => Promise<void>;
   addTask: (task: Omit<Task, 'id' | 'createdAt'>) => void;
@@ -23,9 +26,9 @@ interface AppContextType {
   deleteTask: (id: string) => void;
   activeProjectFilter: string | null;
   setActiveProjectFilter: (id: string | null) => void;
-  currentUserRole: 'admin' | 'user' | null;
-  setCurrentUserRole: (role: 'admin' | 'user' | null) => void;
-  currentAdmin: AdminAccount | null;
+  currentUserRole: 'admin' | 'member' | 'user' | null;
+  setCurrentUserRole: (role: 'admin' | 'member' | 'user' | null) => void;
+  currentAccount: UserAccount | null;
   signupAdmin: (name: string, email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   loginAdmin: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>;
   changePassword: (currentPassword: string, newPassword: string) => Promise<{ ok: true } | { ok: false; error: string }>;
@@ -47,11 +50,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   const [projects, setProjects] = useState<Project[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [users, setUsers] = useState<User[]>([]);
+  const [members, setMembers] = useState<UserAccount[]>([]);
   const [activeProjectFilter, setActiveProjectFilter] = useState<string | null>(null);
-  const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'user' | null>(() => {
-    return (localStorage.getItem('taskmgr_role') as 'admin' | 'user') || null;
+  const [currentUserRole, setCurrentUserRole] = useState<'admin' | 'member' | 'user' | null>(() => {
+    return (localStorage.getItem('taskmgr_role') as 'admin' | 'member' | 'user') || null;
   });
-  const [currentAdmin, setCurrentAdmin] = useState<AdminAccount | null>(() => {
+  const [currentAccount, setCurrentAccount] = useState<UserAccount | null>(() => {
     const stored = localStorage.getItem('taskmgr_admin');
     return stored ? JSON.parse(stored) : null;
   });
@@ -60,7 +64,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   });
   const [toast, setToast] = useState<string | null>(null);
 
-  const currentActorName = currentAdmin?.name || 'Guest';
+  const currentActorName = currentAccount?.name || 'Guest';
 
   const showToast = (message: string) => setToast(message);
 
@@ -74,21 +78,24 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [projectsRes, tasksRes, usersRes] = await Promise.all([
+        const [projectsRes, tasksRes, usersRes, membersRes] = await Promise.all([
           fetch(`${API_URL}/projects`),
           fetch(`${API_URL}/tasks`),
-          fetch(`${API_URL}/users`)
+          fetch(`${API_URL}/users`),
+          fetch(`${API_URL}/auth/members`)
         ]);
-        
-        const [projData, taskData, userData] = await Promise.all([
+
+        const [projData, taskData, userData, memberData] = await Promise.all([
           projectsRes.json(),
           tasksRes.json(),
-          usersRes.json()
+          usersRes.json(),
+          membersRes.json()
         ]);
-        
+
         setProjects(projData);
         setTasks(taskData);
         setUsers(userData);
+        setMembers(memberData);
       } catch (error) {
         console.error('Error fetching data from API:', error);
       }
@@ -102,9 +109,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   }, [currentUserRole]);
 
   useEffect(() => {
-    if (currentAdmin) localStorage.setItem('taskmgr_admin', JSON.stringify(currentAdmin));
+    if (currentAccount) localStorage.setItem('taskmgr_admin', JSON.stringify(currentAccount));
     else localStorage.removeItem('taskmgr_admin');
-  }, [currentAdmin]);
+  }, [currentAccount]);
 
   useEffect(() => {
     localStorage.setItem('taskmgr_theme', theme);
@@ -125,7 +132,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       if (!response.ok) return { ok: false, error: data.error || 'Signup failed' };
       localStorage.setItem('taskmgr_admin', JSON.stringify(data));
       localStorage.setItem('taskmgr_role', 'admin');
-      setCurrentAdmin(data);
+      setCurrentAccount(data);
       setCurrentUserRole('admin');
       return { ok: true };
     } catch (error) {
@@ -144,9 +151,9 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       const data = await response.json();
       if (!response.ok) return { ok: false, error: data.error || 'Login failed' };
       localStorage.setItem('taskmgr_admin', JSON.stringify(data));
-      localStorage.setItem('taskmgr_role', 'admin');
-      setCurrentAdmin(data);
-      setCurrentUserRole('admin');
+      localStorage.setItem('taskmgr_role', data.role);
+      setCurrentAccount(data);
+      setCurrentUserRole(data.role);
       return { ok: true };
     } catch (error) {
       console.error('Error logging in:', error);
@@ -155,12 +162,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const changePassword = async (currentPassword: string, newPassword: string): Promise<{ ok: true } | { ok: false; error: string }> => {
-    if (!currentAdmin) return { ok: false, error: 'Not signed in' };
+    if (!currentAccount) return { ok: false, error: 'Not signed in' };
     try {
       const response = await fetch(`${API_URL}/auth/change-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: currentAdmin.id, currentPassword, newPassword })
+        body: JSON.stringify({ id: currentAccount.id, currentPassword, newPassword })
       });
       const data = await response.json();
       if (!response.ok) return { ok: false, error: data.error || 'Could not change password' };
@@ -172,17 +179,17 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const updateProfileName = async (name: string): Promise<{ ok: true } | { ok: false; error: string }> => {
-    if (!currentAdmin) return { ok: false, error: 'Not signed in' };
+    if (!currentAccount) return { ok: false, error: 'Not signed in' };
     try {
       const response = await fetch(`${API_URL}/auth/profile`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: currentAdmin.id, name })
+        body: JSON.stringify({ id: currentAccount.id, name })
       });
       const data = await response.json();
       if (!response.ok) return { ok: false, error: data.error || 'Could not update profile' };
       localStorage.setItem('taskmgr_admin', JSON.stringify(data));
-      setCurrentAdmin(data);
+      setCurrentAccount(data);
       return { ok: true };
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -191,12 +198,12 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   const deleteAccount = async (password: string): Promise<{ ok: true } | { ok: false; error: string }> => {
-    if (!currentAdmin) return { ok: false, error: 'Not signed in' };
+    if (!currentAccount) return { ok: false, error: 'Not signed in' };
     try {
       const response = await fetch(`${API_URL}/auth/account`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: currentAdmin.id, password })
+        body: JSON.stringify({ id: currentAccount.id, password })
       });
       if (!response.ok) {
         const data = await response.json();
@@ -208,6 +215,32 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     } catch (error) {
       console.error('Error deleting account:', error);
       return { ok: false, error: 'Could not reach the server' };
+    }
+  };
+
+  const createMember = async (name: string, email: string, password: string): Promise<{ ok: true } | { ok: false; error: string }> => {
+    try {
+      const response = await fetch(`${API_URL}/auth/create-member`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password })
+      });
+      const data = await response.json();
+      if (!response.ok) return { ok: false, error: data.error || 'Could not create member' };
+      setMembers(prev => [...prev, data]);
+      return { ok: true };
+    } catch (error) {
+      console.error('Error creating member:', error);
+      return { ok: false, error: 'Could not reach the server' };
+    }
+  };
+
+  const deleteMember = async (id: string) => {
+    try {
+      await fetch(`${API_URL}/auth/members/${id}`, { method: 'DELETE' });
+      setMembers(prev => prev.filter(m => m.id !== id));
+    } catch (error) {
+      console.error('Error deleting member:', error);
     }
   };
 
@@ -296,7 +329,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
   };
 
   return (
-    <AppContext.Provider value={{ projects, tasks, users, addProject, updateProject, addTask, updateTaskStatus, updateTask, deleteTask, activeProjectFilter, setActiveProjectFilter, currentUserRole, setCurrentUserRole, currentAdmin, signupAdmin, loginAdmin, changePassword, updateProfileName, deleteAccount, theme, setTheme, currentActorName, toast, showToast }}>
+    <AppContext.Provider value={{ projects, tasks, users, members, createMember, deleteMember, addProject, updateProject, addTask, updateTaskStatus, updateTask, deleteTask, activeProjectFilter, setActiveProjectFilter, currentUserRole, setCurrentUserRole, currentAccount, signupAdmin, loginAdmin, changePassword, updateProfileName, deleteAccount, theme, setTheme, currentActorName, toast, showToast }}>
       {children}
     </AppContext.Provider>
   );

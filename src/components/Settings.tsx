@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useAppContext } from '../store';
-import { KeyRound, User, Palette, Bell, ShieldAlert, Check, Sun, Moon, X } from 'lucide-react';
+import { KeyRound, User, Palette, Bell, ShieldAlert, Check, Sun, Moon, X, Users, Plus, Trash2 } from 'lucide-react';
 
-type SectionId = 'profile' | 'security' | 'appearance' | 'notifications' | 'danger';
+type SectionId = 'profile' | 'security' | 'appearance' | 'notifications' | 'members' | 'danger';
 
-const SECTIONS: { id: SectionId; label: string; icon: React.ReactNode }[] = [
+const SECTIONS: { id: SectionId; label: string; icon: React.ReactNode; adminOnly?: boolean }[] = [
   { id: 'profile', label: 'Profile', icon: <User size={16} /> },
   { id: 'security', label: 'Security', icon: <KeyRound size={16} /> },
   { id: 'appearance', label: 'Appearance', icon: <Palette size={16} /> },
   { id: 'notifications', label: 'Notifications', icon: <Bell size={16} /> },
+  { id: 'members', label: 'Members', icon: <Users size={16} />, adminOnly: true },
   { id: 'danger', label: 'Danger Zone', icon: <ShieldAlert size={16} /> },
 ];
 
@@ -54,8 +55,8 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void }> = (
 );
 
 const ProfileSection: React.FC = () => {
-  const { currentAdmin, updateProfileName } = useAppContext();
-  const [name, setName] = useState(currentAdmin?.name || '');
+  const { currentAccount, updateProfileName } = useAppContext();
+  const [name, setName] = useState(currentAccount?.name || '');
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -81,7 +82,7 @@ const ProfileSection: React.FC = () => {
         </div>
         <div>
           <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Email</label>
-          <input type="email" value={currentAdmin?.email || ''} disabled style={{ ...inputStyle, opacity: 0.6, cursor: 'not-allowed' }} />
+          <input type="email" value={currentAccount?.email || ''} disabled style={{ ...inputStyle, opacity: 0.6, cursor: 'not-allowed' }} />
         </div>
 
         {status && (
@@ -233,6 +234,66 @@ const NotificationsSection: React.FC = () => {
   );
 };
 
+const MembersSection: React.FC = () => {
+  const { members, createMember, deleteMember } = useAppContext();
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSubmitting(true);
+    const result = await createMember(name, email, password);
+    setSubmitting(false);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setName('');
+    setEmail('');
+    setPassword('');
+  };
+
+  return (
+    <div className="glass-panel animate-fade-in" style={sectionCardStyle}>
+      <div>
+        <h2 style={sectionHeadingStyle}><Users size={20} /> Members</h2>
+        <p style={sectionSubtextStyle}>Create logins for people on your team. They sign in with the email and password you set here.</p>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        {members.map(m => (
+          <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 14px', borderRadius: '8px', backgroundColor: 'var(--subtle-fill)' }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ margin: 0, fontSize: '0.9rem', fontWeight: 500, color: 'var(--text-primary)' }}>{m.name}</p>
+              <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{m.email}</p>
+            </div>
+            <button type="button" onClick={() => deleteMember(m.id)} style={{ background: 'transparent', color: 'var(--text-secondary)', padding: '4px' }} title="Remove member">
+              <Trash2 size={16} />
+            </button>
+          </div>
+        ))}
+        {members.length === 0 && <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)' }}>No members yet.</p>}
+      </div>
+
+      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '360px' }}>
+        <input type="text" placeholder="Full name" value={name} onChange={(e) => setName(e.target.value)} required style={inputStyle} />
+        <input type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required style={inputStyle} />
+        <input type="password" placeholder="Temporary password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={8} style={inputStyle} />
+
+        {error && <p style={{ color: 'var(--danger-color)', margin: 0, fontSize: '0.9rem' }}>{error}</p>}
+
+        <button type="submit" className="btn-primary" disabled={submitting} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 24px', fontSize: '0.95rem', alignSelf: 'flex-start' }}>
+          <Plus size={16} /> {submitting ? 'Adding…' : 'Add Member'}
+        </button>
+      </form>
+    </div>
+  );
+};
+
 const DangerZoneSection: React.FC = () => {
   const { deleteAccount } = useAppContext();
   const [password, setPassword] = useState('');
@@ -280,8 +341,9 @@ const DangerZoneSection: React.FC = () => {
 };
 
 export const Settings: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ isOpen, onClose }) => {
-  const { currentAdmin } = useAppContext();
+  const { currentAccount, currentUserRole } = useAppContext();
   const [activeSection, setActiveSection] = useState<SectionId>('profile');
+  const visibleSections = SECTIONS.filter(s => !s.adminOnly || currentUserRole === 'admin');
 
   // Prevent background scrolling and interaction while the modal is open
   useEffect(() => {
@@ -329,14 +391,14 @@ export const Settings: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
           </button>
         </div>
 
-        {!currentAdmin ? (
+        {!currentAccount ? (
           <div style={{ padding: '0 32px 32px 32px' }}>
             <p style={{ color: 'var(--text-secondary)', margin: 0 }}>Settings are only available for signed-in accounts.</p>
           </div>
         ) : (
           <div style={{ display: 'flex', gap: '24px', padding: '0 32px 32px 32px', overflowY: 'auto', flex: 1, minHeight: 0 }}>
             <div style={{ width: '200px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {SECTIONS.map(section => (
+              {visibleSections.map(section => (
                 <button
                   key={section.id}
                   type="button"
@@ -361,6 +423,7 @@ export const Settings: React.FC<{ isOpen: boolean; onClose: () => void }> = ({ i
               {activeSection === 'security' && <SecuritySection />}
               {activeSection === 'appearance' && <AppearanceSection />}
               {activeSection === 'notifications' && <NotificationsSection />}
+              {activeSection === 'members' && currentUserRole === 'admin' && <MembersSection />}
               {activeSection === 'danger' && <DangerZoneSection />}
             </div>
           </div>
